@@ -3,6 +3,7 @@ package guacamole
 import (
 	"log"
 	"os"
+	"path/filepath"
 	"sync"
 )
 
@@ -15,9 +16,10 @@ type Recording struct {
 
 func NewRecording(recordingPath string) (*Recording, error) {
 	// 判断目录是否存在
-	if _, err := os.Stat(recordingPath); os.IsNotExist(err) {
+	recordingDir := filepath.Dir(recordingPath)
+	if _, err := os.Stat(recordingDir); os.IsNotExist(err) {
 		// 创建目录
-		if err := os.MkdirAll(recordingPath, os.ModePerm); err != nil {
+		if err := os.MkdirAll(recordingDir, os.ModePerm); err != nil {
 			return nil, err
 		}
 	}
