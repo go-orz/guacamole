@@ -5,6 +5,9 @@ import (
 )
 
 const (
+	Username = "username"
+	Password = "password"
+
 	EnableRecording     = "enable-recording"
 	RecordingPath       = "recording-path"
 	CreateRecordingPath = "create-recording-path"
@@ -21,9 +24,19 @@ const (
 	DisableAudio     = "disable-audio"
 	EnableAudioInput = "enable-audio-input"
 
-	EnableDrive              = "enable-drive"
-	DriveName                = "drive-name"
-	DrivePath                = "drive-path"
+	EnableDrive     = "enable-drive"
+	DriveName       = "drive-name"
+	DrivePath       = "drive-path"
+	CreateDrivePath = "create-drive-path"
+
+	Security     = "security"
+	IgnoreCert   = "ignore-cert"
+	ResizeMethod = "resize-method"
+
+	EnablePrinting = "enable-printing"
+	PrinterName    = "printer-name"
+	PrinterDriver  = "printer-driver"
+
 	EnableWallpaper          = "enable-wallpaper"
 	EnableTheming            = "enable-theming"
 	EnableFontSmoothing      = "enable-font-smoothing"
@@ -60,7 +73,6 @@ const (
 	ClientCert = "client-cert"
 	ClientKey  = "client-key"
 	CaCert     = "ca-cert"
-	IgnoreCert = "ignore-cert"
 )
 
 var recordingInst = []string{

@@ -30,5 +30,6 @@ type Tunnel interface {
 	To(ws *websocket.Conn) error
 	Join(guest string) Tunnel
 	Quit(guest string)
-	Close()
+
+	Kill(reason string)
 }

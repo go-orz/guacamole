@@ -30,6 +30,12 @@ type NetworkTunnel struct {
 	once         sync.Once
 	observers    map[string]Tunnel
 	observerLock sync.Mutex
+
+	killer chan string
+}
+
+func (t *NetworkTunnel) Kill(reason string) {
+	t.killer <- reason
 }
 
 func (t *NetworkTunnel) UUID() string {
@@ -43,6 +49,7 @@ func NewNetworkTunnel(address string, config *Configuration, debug bool) Tunnel 
 		debug:     debug,
 		closer:    make(chan struct{}),
 		observers: make(map[string]Tunnel),
+		killer:    make(chan string, 1),
 	}
 	return tun
 }
@@ -210,11 +217,22 @@ func (t *NetworkTunnel) ReceiveInstruction() (*Instruction, error) {
 }
 
 func (t *NetworkTunnel) Disconnect() {
-	_ = t.SendInstruction(NewInstruction("disconnect"))
-	t.closeTunnel()
-	if t.recording != nil {
-		t.recording.Close()
-	}
+	t.once.Do(func() {
+		close(t.closer)
+		close(t.killer)
+		// 发送断开连接的消息
+		_ = t.SendInstruction(NewInstruction("disconnect"))
+		// 主动断开
+		t.closeTunnel()
+		// 关闭录制
+		if t.recording != nil {
+			t.recording.Close()
+		}
+		// 断开观察者
+		for _, tunnel := range t.observers {
+			tunnel.Disconnect()
+		}
+	})
 }
 
 func (t *NetworkTunnel) closeTunnel() {
@@ -236,11 +254,14 @@ func (t *NetworkTunnel) To(ws *websocket.Conn) error {
 func (t *NetworkTunnel) loopRead(ws *websocket.Conn) {
 	defer func() {
 		ws.Close()
-		t.Close()
+		t.Disconnect()
 	}()
 	for {
 		select {
 		case <-t.closer:
+			return
+		case reason := <-t.killer:
+			_ = ws.WriteMessage(websocket.TextMessage, []byte(NewInstruction("error", reason, "886").String()))
 			return
 		default:
 			instruction, err := t.Receive()
@@ -250,7 +271,11 @@ func (t *NetworkTunnel) loopRead(ws *websocket.Conn) {
 			if len(instruction) == 0 {
 				continue
 			}
-			_ = ws.WriteMessage(websocket.TextMessage, instruction)
+			err = ws.WriteMessage(websocket.TextMessage, instruction)
+			if err != nil {
+				// 前端写入失败
+				return
+			}
 		}
 	}
 }
@@ -258,7 +283,7 @@ func (t *NetworkTunnel) loopRead(ws *websocket.Conn) {
 func (t *NetworkTunnel) loopWrite(ws *websocket.Conn) {
 	defer func() {
 		ws.Close()
-		t.Close()
+		t.Disconnect()
 	}()
 	for {
 		select {
@@ -271,19 +296,12 @@ func (t *NetworkTunnel) loopWrite(ws *websocket.Conn) {
 					// 读取ws失败就代表前端断开了连接，这里要退出
 					return
 				}
-				_ = t.Send(message)
+				err = t.Send(message)
+				if err != nil {
+					return
+				}
 			}
 		}
-	}
-}
-
-func (t *NetworkTunnel) Close() {
-	t.once.Do(func() {
-		close(t.closer)
-	})
-	t.Disconnect()
-	for _, tunnel := range t.observers {
-		tunnel.Close()
 	}
 }
 
