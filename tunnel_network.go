@@ -228,11 +228,15 @@ func (t *NetworkTunnel) Disconnect() {
 		if t.recording != nil {
 			t.recording.Close()
 		}
-		// 断开观察者
-		for _, tunnel := range t.observers {
-			tunnel.Disconnect()
-		}
+		t.ClearSharer()
 	})
+}
+
+func (t *NetworkTunnel) ClearSharer() {
+	// 断开观察者
+	for _, tunnel := range t.observers {
+		tunnel.Disconnect()
+	}
 }
 
 func (t *NetworkTunnel) closeTunnel() {
@@ -244,9 +248,11 @@ func (t *NetworkTunnel) closeTunnel() {
 	_ = t.io.Close()
 }
 
-func (t *NetworkTunnel) To(ws *websocket.Conn) error {
+func (t *NetworkTunnel) To(ws *websocket.Conn, readonly bool) error {
 	go t.loopRead(ws)
-	go t.loopWrite(ws)
+	if !readonly {
+		go t.loopWrite(ws)
+	}
 	<-t.closer
 	return nil
 }
@@ -314,7 +320,7 @@ func (t *NetworkTunnel) Join(guest string) Tunnel {
 	configuration.SetParameter("width", "1024")
 	configuration.SetParameter("height", "768")
 	configuration.SetParameter("dpi", "96")
-	configuration.SetReadOnlyMode()
+	//configuration.SetReadOnlyMode()
 
 	forkedTunnel := NewNetworkTunnel(t.Address(), configuration, false)
 

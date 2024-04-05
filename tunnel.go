@@ -13,7 +13,7 @@ const (
 )
 
 const Delimiter = ';'
-const Version = "VERSION_1_5_3"
+const Version = "VERSION_1_5_4"
 
 var ErrNotConnected = errors.New("not connected")
 
@@ -21,13 +21,14 @@ type Tunnel interface {
 	Address() string
 	Connect() error
 	Disconnect()
+	ClearSharer()
 	Send(raw []byte) error
 	Receive() ([]byte, error)
 	SendInstruction(ins ...*Instruction) error
 	ReceiveInstruction() (*Instruction, error)
 	UUID() string
 
-	To(ws *websocket.Conn) error
+	To(ws *websocket.Conn, readonly bool) error
 	Join(guest string) Tunnel
 	Quit(guest string)
 
