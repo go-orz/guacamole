@@ -13,7 +13,7 @@ const (
 )
 
 const Delimiter = ';'
-const Version = "VERSION_1_5_4"
+const Version = "VERSION_1_5_0"
 
 var ErrNotConnected = errors.New("not connected")
 
