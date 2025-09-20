@@ -2,6 +2,7 @@ package guacamole
 
 import (
 	"errors"
+
 	"github.com/gorilla/websocket"
 )
 
@@ -13,7 +14,7 @@ const (
 )
 
 const Delimiter = ';'
-const Version = "VERSION_1_5_0"
+const Version = "VERSION_1_6_0"
 
 var ErrNotConnected = errors.New("not connected")
 

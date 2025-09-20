@@ -1,8 +1,9 @@
 package guacamole
 
 import (
-	"github.com/gorilla/websocket"
 	"strconv"
+
+	"github.com/gorilla/websocket"
 )
 
 func Disconnect(ws *websocket.Conn, code int, reason string) {

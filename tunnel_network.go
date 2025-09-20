@@ -2,11 +2,12 @@ package guacamole
 
 import (
 	"errors"
-	"github.com/gorilla/websocket"
 	"net"
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/gorilla/websocket"
 )
 
 // Interface guards
