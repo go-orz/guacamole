@@ -23,7 +23,6 @@ type NetworkTunnel struct {
 	config     *Configuration // configs
 	io         *InstructionIO
 	writeMutex sync.Mutex
-	recording  *Recording
 
 	debug bool
 
@@ -67,20 +66,6 @@ func (t *NetworkTunnel) Connect() error {
 
 	t.conn = conn
 	t.io = NewInstructionIO(t.conn, t.debug)
-
-	config := t.config
-
-	recordingPath := config.GetParameter(RecordingPath)
-	if "" != recordingPath {
-		config.UnSetParameter(RecordingPath)
-		config.UnSetParameter(CreateRecordingPath)
-		recording, err := NewRecording(recordingPath)
-		if err != nil {
-			return err
-		}
-		t.recording = recording
-		go t.recording.Run()
-	}
 
 	err = t.handshake()
 	if err != nil {
@@ -203,9 +188,6 @@ func (t *NetworkTunnel) Receive() ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	if t.recording != nil {
-		t.recording.Send(p)
-	}
 	return p, nil
 }
 
@@ -225,10 +207,7 @@ func (t *NetworkTunnel) Disconnect() {
 		_ = t.SendInstruction(NewInstruction("disconnect"))
 		// 主动断开
 		t.closeTunnel()
-		// 关闭录制
-		if t.recording != nil {
-			t.recording.Close()
-		}
+		// 断开观察者
 		t.ClearSharer()
 	})
 }
