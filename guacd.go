@@ -2,6 +2,7 @@ package guacamole
 
 import (
 	"fmt"
+	"strings"
 )
 
 const (
@@ -139,10 +140,20 @@ func (opt *Instruction) String() string {
 		return opt.ProtocolForm
 	}
 
-	opt.ProtocolForm = fmt.Sprintf("%d.%s", len(opt.Opcode), opt.Opcode)
+	// Use strings.Builder for efficient string concatenation
+	var builder strings.Builder
+	// Write opcode with length prefix
+	builder.WriteString(fmt.Sprintf("%d.%s", len(opt.Opcode), opt.Opcode))
+
+	// Write arguments with length prefixes
 	for _, value := range opt.Args {
-		opt.ProtocolForm += fmt.Sprintf(",%d.%s", len(value), value)
+		builder.WriteByte(',')
+		builder.WriteString(fmt.Sprintf("%d.%s", len(value), value))
 	}
-	opt.ProtocolForm += string(Delimiter)
+
+	// Write terminator
+	builder.WriteByte(Delimiter)
+
+	opt.ProtocolForm = builder.String()
 	return opt.ProtocolForm
 }

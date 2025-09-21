@@ -8,8 +8,19 @@ import (
 	"strings"
 )
 
+// Protocol constants matching Java implementation
+const (
+	InstructionMaxLength   = 8192 // Maximum number of characters per instruction
+	InstructionMaxDigits   = 5    // Maximum number of digits per length prefix
+	InstructionMaxElements = 128  // Maximum number of elements per instruction
+)
+
 var (
 	ErrInstructionParseFailed = errors.New("instruction parse failed")
+	ErrInstructionTooLong     = errors.New("instruction exceeds maximum length")
+	ErrTooManyElements        = errors.New("instruction contains too many elements")
+	ErrInvalidLengthPrefix    = errors.New("non-numeric character in element length")
+	ErrInvalidTerminator      = errors.New("element terminator was not ';' nor ','")
 )
 
 // InstructionIO ...
@@ -102,30 +113,53 @@ func ParseInstruction(raw []byte) (*Instruction, error) {
 	if len(raw) == 0 {
 		return NewInstruction("nop"), nil
 	}
+
 	content := string(raw)
+
+	// Handle special audio cases (legacy compatibility)
 	if content == "5.audio,1.1,31.audio/L16;rate=44100,channels=2;" {
 		return NewInstruction("audio", "1", "audio/L16;rate=44100,channels=2"), nil
 	}
 	if content == "5.audio,1.0,31.audio/L16;rate=44100,channels=2;" {
 		return NewInstruction("audio", "0", "audio/L16;rate=44100,channels=2"), nil
 	}
-	if strings.LastIndex(content, ";") > 0 {
-		content = strings.TrimRight(content, ";")
-	}
-	messages := strings.Split(content, ",")
 
-	var args = make([]string, len(messages))
-	for i := range messages {
-		lm := strings.SplitN(messages[i], ".", 2)
-		if len(lm) < 2 {
+	// Remove trailing semicolon
+	if strings.HasSuffix(content, ";") {
+		content = strings.TrimSuffix(content, ";")
+	}
+
+	// Split by comma to get elements
+	messages := strings.Split(content, ",")
+	if len(messages) > InstructionMaxElements {
+		return nil, ErrTooManyElements
+	}
+
+	args := make([]string, len(messages))
+	for i, message := range messages {
+		// Parse length.content format
+		parts := strings.SplitN(message, ".", 2)
+		if len(parts) < 2 {
 			return nil, ErrInstructionParseFailed
 		}
-		args[i] = lm[1]
+
+		// Validate length prefix (should be numeric)
+		lengthStr := parts[0]
+		if len(lengthStr) > InstructionMaxDigits {
+			return nil, ErrInvalidLengthPrefix
+		}
+
+		for _, char := range lengthStr {
+			if char < '0' || char > '9' {
+				return nil, ErrInvalidLengthPrefix
+			}
+		}
+
+		args[i] = parts[1]
 	}
 
 	if len(args) == 1 {
 		return NewInstruction(args[0]), nil
-	} else {
-		return NewInstruction(args[0], args[1:]...), nil
 	}
+	return NewInstruction(args[0], args[1:]...), nil
 }
