@@ -120,10 +120,11 @@ func (t *NetworkTunnel) handshake() error {
 	parameters := make([]string, len(args.Args))
 	for i := range args.Args {
 		argName := args.Args[i]
-		if strings.Contains(argName, "VERSION") {
-			parameters[i] = Version
+		if i == 0 && strings.Contains(argName, "VERSION") {
+			parameters[i] = LatestVersion
 			continue
 		}
+
 		parameters[i] = config.GetParameter(argName)
 	}
 	// send connect
